@@ -9,11 +9,11 @@ import "../global.css";
 import { useRouter } from "expo-router";
 
 const SplashScreen = () => {
-  const router = useRouter();
+  // const router = useRouter();
 
-  useEffect(() => {
-    setTimeout(() => router.replace("/(auth)/welcome"), 1500);
-  }, [router]);
+  // useEffect(() => {
+  //   setTimeout(() => router.replace("/(auth)/welcome"), 1500);
+  // }, [router]);
 
   return (
     <View className="flex-1 h-full w-full justify-center items-center bg-neutral-900">

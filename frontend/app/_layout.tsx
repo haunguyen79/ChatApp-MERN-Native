@@ -1,8 +1,29 @@
 import React from "react";
 import { Stack } from "expo-router";
+import { AuthProvider } from "@/contexts/authContext";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { LogBox } from "react-native";
+import { useEffect } from "react";
 
-const _layout = () => {
+const StackLayout = () => {
   return <Stack screenOptions={{ headerShown: false }} />;
 };
 
-export default _layout;
+const RootLayout = () => {
+  useEffect(() => {
+    // Suppress specific SafeAreaView deprecation warning coming from some libs
+    LogBox.ignoreLogs([
+      "SafeAreaView has been deprecated and will be removed in a future release",
+    ]);
+  }, []);
+
+  return (
+    <SafeAreaProvider>
+      <AuthProvider>
+        <StackLayout />
+      </AuthProvider>
+    </SafeAreaProvider>
+  );
+};
+
+export default RootLayout;

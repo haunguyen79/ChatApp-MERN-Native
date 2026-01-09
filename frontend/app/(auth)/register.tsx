@@ -1,6 +1,5 @@
 import {
   View,
-  Text,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
@@ -18,19 +17,30 @@ import * as Icons from "lucide-react-native";
 import { verticalScale } from "@/utils/styling";
 import { useRouter } from "expo-router";
 import Button from "@/components/Button";
+import { useAuth } from "@/contexts/authContext";
 
 const Register = () => {
   const [isLoading, setIsLoading] = useState(false);
   const nameRef = useRef("");
   const emailRef = useRef("");
   const passwordRef = useRef("");
-
   const router = useRouter();
 
+  const { signUp } = useAuth();
+
   const handleSubmit = async () => {
-    if(!nameRef.current || !emailRef.current || !passwordRef.current) {
+    if (!nameRef.current || !emailRef.current || !passwordRef.current) {
       Alert.alert("Sign Up", "Please fill in all fields.");
       return;
+    }
+
+    try {
+      setIsLoading(true);
+      await signUp(emailRef.current, passwordRef.current, nameRef.current, "");
+    } catch (error: any) {
+      Alert.alert("Registration Error", error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 

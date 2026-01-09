@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     borderCurve: "continuous",
     height: verticalScale(56),
-    // width: "100%",
+    width: "100%",
     justifyContent: "center",
     alignItems: "center",
     marginTop: verticalScale(30),

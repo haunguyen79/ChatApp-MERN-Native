@@ -1,6 +1,6 @@
 import express from "express";
 import http from "http";
-import cor from "cors";
+import cors from "cors";
 import dotenv from "dotenv";
 import connectDB from "./config/db";
 import { error } from "console";
@@ -12,12 +12,17 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const server = http.createServer(app);
 
+// basic env checks
+if (!process.env.JWT_SECRET) {
+  console.warn("Warning: JWT_SECRET is not set. Token operations will fail.");
+}
+
 //middleware
 app.use(express.json()); //middleware to parse JSON body
-app.use(cor());
+app.use(cors());
 
 //public routes
-app.use("/auth", authRoute)
+app.use("/auth", authRoute);
 
 app.get("/", (req, res) => {
   res.send("Server is running");
