@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import connectDB from "./config/db";
 import { error } from "console";
 import authRoute from "./routes/authRoute";
+import { initializeSocket } from "./socket/socket";
 
 dotenv.config(); // Load environment variables from .env file
 
@@ -27,6 +28,9 @@ app.use("/auth", authRoute);
 app.get("/", (req, res) => {
   res.send("Server is running");
 });
+
+// Listen to Socket events
+initializeSocket(server);
 
 connectDB()
   .then(() => {
