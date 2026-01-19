@@ -6,7 +6,14 @@ import { LogBox } from "react-native";
 import { useEffect } from "react";
 
 const StackLayout = () => {
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen
+        name="(main)/profileModal"
+        options={{ presentation: "modal" }}
+      />
+    </Stack>
+  );
 };
 
 const RootLayout = () => {
