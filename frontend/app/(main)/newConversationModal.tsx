@@ -2,11 +2,10 @@ import {
   Alert,
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import React, { use, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { colors, radius, spacingX, spacingY } from "@/constants/theme";
 import ScreenWrapper from "@/components/ScreenWrapper";
@@ -19,6 +18,8 @@ import Typo from "@/components/Typo";
 import { useAuth } from "@/contexts/authContext";
 import Button from "@/components/Button";
 import { verticalScale } from "@/utils/styling";
+import { getContacts, newConversation } from "@/socket/socketEvents";
+import { uploadFileToCloudinary } from "@/services/imageService";
 
 const NewConversationModal = () => {
   const { isGroup } = useLocalSearchParams();
@@ -31,9 +32,50 @@ const NewConversationModal = () => {
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>(
     [],
   );
+  const [contacts, setContacts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const { user: currentUser } = useAuth();
+
+  useEffect(() => {
+    getContacts(processGetContacts);
+    newConversation(processNewConversation);
+    getContacts(null);
+
+    return () => {
+      getContacts(processGetContacts, true);
+      newConversation(processNewConversation, true);
+    };
+  }, []);
+
+  const processGetContacts = (res: any) => {
+    console.log("Get contacts: ", res);
+    if (res.success) {
+      setContacts(res.data);
+    }
+  };
+
+  const processNewConversation = (res: any) => {
+    console.log("New Conversation result: ", res);
+    setIsLoading(false);
+
+    if (res.success) {
+      router.back();
+      router.push({
+        pathname: "/(main)/conversation",
+        params: {
+          id: res.data._id,
+          name: res.data.name,
+          avatar: res.data.avatar,
+          type: res.data.type,
+          participants: JSON.stringify(res.data.participants),
+        },
+      });
+    } else {
+      console.log("Error fetching/creating conversation: ", res.msg);
+      Alert.alert("Error: ", res.msg);
+    }
+  };
 
   const onPickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -68,7 +110,10 @@ const NewConversationModal = () => {
     if (isGroupMode) {
       toggleParticipant(user);
     } else {
-      // Todo: Start new conversation
+      newConversation({
+        type: "direct",
+        participants: [currentUser.id, user.id],
+      });
     }
   };
 
@@ -76,29 +121,54 @@ const NewConversationModal = () => {
     if (!groupName.trim() || !currentUser || selectedParticipants.length < 2)
       return;
 
-    //Todo: Create new Group
+    setIsLoading(true);
+
+    try {
+      let avatar = "";
+      if (groupAvatar) {
+        const uploadResult = await uploadFileToCloudinary(
+          groupAvatar,
+          "group-avatars",
+        );
+
+        if (uploadResult.success) {
+          avatar = uploadResult.data;
+        }
+      }
+      newConversation({
+        type: "group",
+        participants: [currentUser.id, ...selectedParticipants],
+        name: groupName,
+        avatar: avatar,
+      });
+    } catch (error: any) {
+      console.log("Error creating group: ", error);
+      Alert.alert("Error", error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const contacts = [
-    {
-      id: "1",
-      name: "Nguyen Thi Nhu Ngoc",
-      avatar:
-        "https://scontent.fsgn2-7.fna.fbcdn.net/v/t39.30808-6/545915028_1302536938318514_4565712119368961107_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=833d8c&_nc_eui2=AeGKjMJDIe_W7XUKshb1Lk9DScrh6I2xTA9JyuHojbFMD1OVdId_9BDj9rQkZwylbUTw7pc_rZ76ORfnzyvHAyIK&_nc_ohc=6_jfLr9aqsgQ7kNvwEgV74n&_nc_oc=AdkLZTKv1uVpARsKSgmu4E1cfOsL-bKSOnuCRllESb8x8SIm-Te4XQ-11OLquOkQv9E&_nc_zt=23&_nc_ht=scontent.fsgn2-7.fna&_nc_gid=g4wIdZMi5Grs2d2pi-cVqw&oh=00_AfrvZveUeobQ9azuZPvbJtT7ZfAWoT7vINsOzQuVD_W-yw&oe=69751CC6",
-    },
-    {
-      id: "2",
-      name: "Tran Nguyen Thanh Ngan",
-      avatar:
-        "https://scontent.fsgn2-7.fna.fbcdn.net/v/t39.30808-6/505537088_4073515819591775_661602474503356241_n.jpg?stp=cp6_dst-jpg_p417x417_tt6&_nc_cat=100&ccb=1-7&_nc_sid=833d8c&_nc_eui2=AeEBzsV7jmtVrfdEya0Ts7GpS2FKrlt-R0JLYUquW35HQtmbcbV2F40FS4lqtYA6ghAJIOGSWgiryPwdTmY3nT1j&_nc_ohc=T7sUacmV5d8Q7kNvwFyuxgS&_nc_oc=AdnMjRF7T0xSv4LAcoGK31FVm6qec6tTHlbf3l-PTFTeo7zi4OgNruB3ZMvJxoPmN9w&_nc_zt=23&_nc_ht=scontent.fsgn2-7.fna&_nc_gid=B_JD7uMGpBtd4nygnswOBg&oh=00_Afp-_4ymwRG8RyDaNKgDYwk41BZLPBqBoIsykzraUuewdA&oe=6975141E",
-    },
-    {
-      id: "3",
-      name: "Nguyen Thi Kim Linh",
-      avatar:
-        "https://scontent.fsgn2-7.fna.fbcdn.net/v/t39.30808-6/596402004_3692467710886150_6876632936745966116_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=833d8c&_nc_eui2=AeFDpk--tCBT3OXBDfg0BoFFAmEZZ0j2kwoCYRlnSPaTCtBrr84401SQMyfGKVL9COTKNspWBCAPZzQA8AL0b__R&_nc_ohc=AByZYxkCuBQQ7kNvwHdN9Ed&_nc_oc=AdlXeKz6U8JV_FjmLBKWiMmc3s4zqL8K6L6ZfE-wgT_KZNxQIkceKZOHdjcElXrVZoo&_nc_zt=23&_nc_ht=scontent.fsgn2-7.fna&_nc_gid=d9pPBzJ9B4XH6AEUs4tOnQ&oh=00_AfpLnFrMdlPZLdkkF5zunLW1vCqvVSX5ITmeqpj8ZvFZrw&oe=69753ACA",
-    },
-  ];
+  // const contacts = [
+  //   {
+  //     id: "1",
+  //     name: "Nguyen Thi Nhu Ngoc",
+  //     avatar:
+  //       "https://scontent.fsgn2-7.fna.fbcdn.net/v/t39.30808-6/545915028_1302536938318514_4565712119368961107_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=833d8c&_nc_eui2=AeGKjMJDIe_W7XUKshb1Lk9DScrh6I2xTA9JyuHojbFMD1OVdId_9BDj9rQkZwylbUTw7pc_rZ76ORfnzyvHAyIK&_nc_ohc=6_jfLr9aqsgQ7kNvwEgV74n&_nc_oc=AdkLZTKv1uVpARsKSgmu4E1cfOsL-bKSOnuCRllESb8x8SIm-Te4XQ-11OLquOkQv9E&_nc_zt=23&_nc_ht=scontent.fsgn2-7.fna&_nc_gid=g4wIdZMi5Grs2d2pi-cVqw&oh=00_AfrvZveUeobQ9azuZPvbJtT7ZfAWoT7vINsOzQuVD_W-yw&oe=69751CC6",
+  //   },
+  //   {
+  //     id: "2",
+  //     name: "Tran Nguyen Thanh Ngan",
+  //     avatar:
+  //       "https://scontent.fsgn2-7.fna.fbcdn.net/v/t39.30808-6/505537088_4073515819591775_661602474503356241_n.jpg?stp=cp6_dst-jpg_p417x417_tt6&_nc_cat=100&ccb=1-7&_nc_sid=833d8c&_nc_eui2=AeEBzsV7jmtVrfdEya0Ts7GpS2FKrlt-R0JLYUquW35HQtmbcbV2F40FS4lqtYA6ghAJIOGSWgiryPwdTmY3nT1j&_nc_ohc=T7sUacmV5d8Q7kNvwFyuxgS&_nc_oc=AdnMjRF7T0xSv4LAcoGK31FVm6qec6tTHlbf3l-PTFTeo7zi4OgNruB3ZMvJxoPmN9w&_nc_zt=23&_nc_ht=scontent.fsgn2-7.fna&_nc_gid=B_JD7uMGpBtd4nygnswOBg&oh=00_Afp-_4ymwRG8RyDaNKgDYwk41BZLPBqBoIsykzraUuewdA&oe=6975141E",
+  //   },
+  //   {
+  //     id: "3",
+  //     name: "Nguyen Thi Kim Linh",
+  //     avatar:
+  //       "https://scontent.fsgn2-7.fna.fbcdn.net/v/t39.30808-6/596402004_3692467710886150_6876632936745966116_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=833d8c&_nc_eui2=AeFDpk--tCBT3OXBDfg0BoFFAmEZZ0j2kwoCYRlnSPaTCtBrr84401SQMyfGKVL9COTKNspWBCAPZzQA8AL0b__R&_nc_ohc=AByZYxkCuBQQ7kNvwHdN9Ed&_nc_oc=AdlXeKz6U8JV_FjmLBKWiMmc3s4zqL8K6L6ZfE-wgT_KZNxQIkceKZOHdjcElXrVZoo&_nc_zt=23&_nc_ht=scontent.fsgn2-7.fna&_nc_gid=d9pPBzJ9B4XH6AEUs4tOnQ&oh=00_AfpLnFrMdlPZLdkkF5zunLW1vCqvVSX5ITmeqpj8ZvFZrw&oe=69753ACA",
+  //   },
+  // ];
 
   return (
     <ScreenWrapper isModal={true}>

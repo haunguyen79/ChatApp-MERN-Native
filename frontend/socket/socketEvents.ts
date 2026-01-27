@@ -33,3 +33,37 @@ export const updateProfile = (payload: any, off: boolean = false) => {
         socket.emit("updateProfile", payload);  //Sending payload as data
     }
 }
+
+export const getContacts = (payload: any, off: boolean = false) => {
+    const socket = getSocket();
+    if (!socket) {
+        console.log("Socket is not connected");
+        return;
+    }
+
+    if (off) {
+        //Turn off listing to this event
+        socket.off("getContacts", payload);  // payload is the callback 
+    } else if (typeof payload === "function") {
+        socket.on("getContacts", payload) //payload is the callback for
+    } else {
+        socket.emit("getContacts", payload);  //Sending payload as data
+    }
+}
+
+export const newConversation = (payload: any, off: boolean = false) => {
+    const socket = getSocket();
+    if (!socket) {
+        console.log("Socket is not connected");
+        return;
+    }
+
+    if (off) {
+        //Turn off listing to this event
+        socket.off("newConversation", payload);  // payload is the callback 
+    } else if (typeof payload === "function") {
+        socket.on("newConversation", payload) //payload is the callback for
+    } else {
+        socket.emit("newConversation", payload);  //Sending payload as data
+    }
+}
