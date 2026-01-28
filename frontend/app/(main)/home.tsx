@@ -5,20 +5,53 @@ import Typo from "@/components/Typo";
 import { colors, radius, spacingX, spacingY } from "@/constants/theme";
 import Button from "@/components/Button";
 import { useAuth } from "@/contexts/authContext";
-import { testSocket } from "@/socket/socketEvents";
+import {
+  getConversations,
+  newConversation,
+  testSocket,
+} from "@/socket/socketEvents";
 import { verticalScale } from "@/utils/styling";
 import * as Icons from "phosphor-react-native";
 import { useRouter } from "expo-router";
 import ConversationItem from "@/components/ConversationItem";
 import Loading from "@/components/Loading";
+import { ConversationProps, ResponseProps } from "@/types";
 
 const Home = () => {
   const { user: currentUser, signOut } = useAuth();
   const router = useRouter();
 
   const [selectedTab, setSelectedTab] = useState(0);
-
   const [loading, setLoading] = useState(false);
+  const [conversations, setConversations] = useState<ConversationProps[]>([]);
+
+  useEffect(() => {
+    getConversations(processConversations);
+
+    newConversation(newConversationHandler);
+
+    getConversations(null);
+
+    return () => {
+      getConversations(processConversations, true);
+      newConversation(newConversationHandler, true);
+    };
+  }, []);
+
+  const processConversations = (res: ResponseProps) => {
+    console.log("Res:", res);
+
+    if (res.success) {
+      setConversations(res.data);
+    }
+  };
+
+  const newConversationHandler = (res: ResponseProps) => {
+    console.log("New conversation response:", res);
+    if (res.success && res.data?.isNew) {
+      setConversations((prev) => [...prev, res.data]);
+    }
+  };
 
   // console.log("User:", user)
 
@@ -35,57 +68,57 @@ const Home = () => {
   //   console.log("Got response from testSocket event:", data);
   // };
 
-  const conversations = [
-    {
-      name: "Thanh Ngan",
-      type: "direct",
-      lastMessage: {
-        senderName: "Thanh Ngan",
-        // attachement: { image: "url" },
-        content: "Hey, how are you?",
-        createdAt: "2026-01-15T11:30:00Z",
-      },
-    },
-    {
-      name: "Nhu Ngoc",
-      type: "direct",
-      lastMessage: {
-        senderName: "Nhu Ngoc",
-        content: "Hey, I miss you very much!",
-        createdAt: "2026-01-19T10:35:00Z",
-      },
-    },
-    {
-      name: "Project Team",
-      type: "group",
-      lastMessage: {
-        senderName: "Minh Hoa",
-        content: "Meeting rescheduled to 3 PM tomorrow.",
-        createdAt: "2026-01-20T10:39:00Z",
-      },
-    },
-    {
-      name: "Family is the BEST",
-      type: "group",
-      lastMessage: {
-        senderName: "Mom",
-        content: "Happy Birthday !",
-        createdAt: "2026-01-15T19:30:00Z",
-      },
-    },
-  ];
+  // const conversations = [
+  //   {
+  //     name: "Thanh Ngan",
+  //     type: "direct",
+  //     lastMessage: {
+  //       senderName: "Thanh Ngan",
+  //       // attachement: { image: "url" },
+  //       content: "Hey, how are you?",
+  //       createdAt: "2026-01-15T11:30:00Z",
+  //     },
+  //   },
+  //   {
+  //     name: "Nhu Ngoc",
+  //     type: "direct",
+  //     lastMessage: {
+  //       senderName: "Nhu Ngoc",
+  //       content: "Hey, I miss you very much!",
+  //       createdAt: "2026-01-19T10:35:00Z",
+  //     },
+  //   },
+  //   {
+  //     name: "Project Team",
+  //     type: "group",
+  //     lastMessage: {
+  //       senderName: "Minh Hoa",
+  //       content: "Meeting rescheduled to 3 PM tomorrow.",
+  //       createdAt: "2026-01-20T10:39:00Z",
+  //     },
+  //   },
+  //   {
+  //     name: "Family is the BEST",
+  //     type: "group",
+  //     lastMessage: {
+  //       senderName: "Mom",
+  //       content: "Happy Birthday !",
+  //       createdAt: "2026-01-15T19:30:00Z",
+  //     },
+  //   },
+  // ];
 
   let directConversations = conversations
-    .filter((item: any) => item.type === "direct")
-    .sort((a: any, b: any) => {
+    .filter((item: ConversationProps) => item.type === "direct")
+    .sort((a: ConversationProps, b: ConversationProps) => {
       const aDate = a?.lastMessage?.createdAt || a.createdAt;
       const bDate = b?.lastMessage?.createdAt || b.createdAt;
       return new Date(bDate).getTime() - new Date(aDate).getTime();
     });
 
   let groupConversations = conversations
-    .filter((item: any) => item.type === "group")
-    .sort((a: any, b: any) => {
+    .filter((item: ConversationProps) => item.type === "group")
+    .sort((a: ConversationProps, b: ConversationProps) => {
       const aDate = a?.lastMessage?.createdAt || a.createdAt;
       const bDate = b?.lastMessage?.createdAt || b.createdAt;
       return new Date(bDate).getTime() - new Date(aDate).getTime();
@@ -158,7 +191,7 @@ const Home = () => {
 
             <View style={styles.coversationList}>
               {selectedTab === 0 &&
-                directConversations.map((item: any, index) => (
+                directConversations.map((item: ConversationProps, index) => (
                   <ConversationItem
                     key={index}
                     item={item}
@@ -168,7 +201,7 @@ const Home = () => {
                 ))}
 
               {selectedTab === 1 &&
-                groupConversations.map((item: any, index) => (
+                groupConversations.map((item: ConversationProps, index) => (
                   <ConversationItem
                     key={index}
                     item={item}
